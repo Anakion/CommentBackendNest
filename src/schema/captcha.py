@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, field_validator
 import re
 
@@ -12,9 +14,12 @@ class CaptchaBase(BaseModel):
             raise ValueError("CAPTCHA должна быть длиной 6 символов")
         return v
 
+class CaptchaCreate(CaptchaBase):
+    pass
 
 class CaptchaOut(CaptchaBase):
     id: int
+    created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     env_file:
       - .dev.env
-    container_name: postgres_comment
+    container_name: postgres_backend_comment
     restart: always
     ports:
       - "5432:5432"

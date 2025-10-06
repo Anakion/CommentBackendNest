@@ -1,35 +1,50 @@
-from pydantic import BaseModel, EmailStr, HttpUrl, validator, field_validator
+from xml.etree import ElementTree
+from pydantic import BaseModel, EmailStr, HttpUrl, field_validator
 from typing import Optional, List
 import re
 import bleach
 from datetime import datetime
+
+from src.schema.user import UserOut
 
 ALLOWED_TAGS = ['a', 'code', 'i', 'strong']
 ALLOWED_ATTRIBUTES = {
     'a': ['href', 'title']
 }
 
+
 class CommentBase(BaseModel):
     text: str
     parent_id: Optional[int] = None
 
-    @validator('text')
-    def validate_text(cls, v):
+    @field_validator('text')
+    @classmethod
+    def validate_text(cls, value: str) -> str:
         clean_text = bleach.clean(
-            v,
+            value,
             tags=ALLOWED_TAGS,
             attributes=ALLOWED_ATTRIBUTES,
             strip=True
         )
+
         if not clean_text.strip():
             raise ValueError("Комментарий не может быть пустым после очистки")
+
+        try:
+            wrapped = f"<root>{clean_text}</root>"
+            ElementTree.fromstring(wrapped)
+        except ElementTree.ParseError:
+            raise ValueError("Некорректная структура HTML-тегов")
+
         return clean_text
+
 
 class CommentCreate(CommentBase):
     username: str
     email: EmailStr
     homepage: Optional[HttpUrl] = None
-    captcha: str
+    captcha_id: int
+    captcha_text: str
 
     @field_validator('username')
     def validate_username(cls, v):
@@ -37,20 +52,25 @@ class CommentCreate(CommentBase):
             raise ValueError("Username может содержать только латинские буквы и цифры")
         return v
 
-    @field_validator('captcha')
-    def validate_captcha(cls, v):
-        if not re.fullmatch(r'[A-Za-z0-9]+', v):
-            raise ValueError("CAPTCHA должна содержать только латинские буквы и цифры")
-        if len(v) != 6:
-            raise ValueError("CAPTCHA должна быть длиной 6 символов")
-        return v
+
+class CommentPreview(CommentBase):
+    username: str
+    email: EmailStr
+    homepage: Optional[HttpUrl] = None
+
 
 class CommentOut(CommentBase):
     id: int
-    user_id: int
-    username: str
+    user: UserOut
     created_at: datetime
     replies: List["CommentOut"] = []
+    file_path: Optional[str] = None
+    file_name: Optional[str] = None
+    file_type: Optional[str] = None
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+
