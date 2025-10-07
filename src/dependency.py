@@ -1,6 +1,8 @@
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.websocket import connection_manager, ConnectionManager
 from src.db.session import get_db
 from src.repositories.captcha import CaptchaRepository
 from src.repositories.comment import CommentRepository
@@ -26,7 +28,10 @@ async def get_comment_service(
     comment_repo: Annotated[CommentRepository, Depends(get_comment_repository)],
     user_repo: Annotated[UserRepository, Depends(get_user_repository)]
 ) -> CommentService:
-    return CommentService(comment_repo, user_repo)
+    return CommentService(comment_repo, user_repo, connection_manager)
+
+async def get_websocket_manager() -> ConnectionManager:
+    return connection_manager
 
 async def get_user_service(
     user_repo: Annotated[UserRepository, Depends(get_user_repository)]

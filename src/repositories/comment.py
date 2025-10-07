@@ -19,9 +19,23 @@ class CommentRepository:
         return comment
 
     async def get_by_id(self, comment_id: int) -> Optional[Comment]:
-        result = await self.session.execute(
-            select(Comment).where(Comment.id == comment_id)
+        def load_replies(level=0):
+            if level > 5:  # ограничение на глубину
+                return selectinload(Comment.replies)
+            return selectinload(Comment.replies).options(
+                selectinload(Comment.user),
+                load_replies(level + 1)
+            )
+
+        query = (
+            select(Comment)
+            .where(Comment.id == comment_id)
+            .options(
+                selectinload(Comment.user),
+                load_replies(0)
+            )
         )
+        result = await self.session.execute(query)
         return result.scalars().first()
 
     async def get_root_comments(
@@ -62,9 +76,24 @@ class CommentRepository:
         return list(result.scalars().all())
 
     async def get_replies(self, parent_id: int) -> List[Comment]:
-        result = await self.session.execute(
-            select(Comment).where(Comment.parent_id == parent_id)
+        def load_replies(level=0):
+            if level > 5:  # ограничение глубины, чтобы не уйти в рекурсию
+                return selectinload(Comment.replies)
+            return selectinload(Comment.replies).options(
+                selectinload(Comment.user),
+                load_replies(level + 1)
+            )
+
+        query = (
+            select(Comment)
+            .where(Comment.parent_id == parent_id)
+            .options(
+                selectinload(Comment.user),
+                load_replies(0)
+            )
+            .order_by(Comment.created_at.asc())
         )
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
     async def get_total_count(self) -> int:

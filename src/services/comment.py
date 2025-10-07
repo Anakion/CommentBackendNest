@@ -1,15 +1,18 @@
 from dataclasses import dataclass
 from typing import Optional, List
 
+from src.core.websocket import ConnectionManager
 from src.models.comment import Comment
 from src.repositories.comment import CommentRepository
 from src.repositories.user import UserRepository
+from src.schema.comment import CommentOut
 
 
 @dataclass
 class CommentService:
     comment_repo: CommentRepository
     user_repo: UserRepository
+    websocket_manager: ConnectionManager
 
     async def create_comment(
             self,
@@ -29,7 +32,17 @@ class CommentService:
             parent_id=parent_id
         )
 
-        return await self.comment_repo.add(comment)
+        saved_comment = await self.comment_repo.add(comment)
+
+        # Загружаем связи для WebSocket
+        await self.comment_repo.session.refresh(saved_comment)
+        await self.comment_repo.session.refresh(saved_comment.user)
+
+        # Отправляем уведомление через WebSocket
+        comment_out = CommentOut.model_validate(saved_comment, from_attributes=True)
+        await self.websocket_manager.broadcast_new_comment(comment_out)
+
+        return saved_comment
 
 
     async def get_comments_paginated(

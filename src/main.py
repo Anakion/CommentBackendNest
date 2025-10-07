@@ -7,6 +7,7 @@ from starlette.staticfiles import StaticFiles
 
 from src.api.v1 import comments
 from src.api.v1 import captcha
+from src.api.v1 import websocket
 
 os.makedirs("uploads/images", exist_ok=True)
 os.makedirs("uploads/texts", exist_ok=True)
@@ -21,7 +22,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.include_router(comments.router)
 app.include_router(captcha.router)
-
+app.include_router(websocket.router)
 
 @app.get("/")
 async def root():

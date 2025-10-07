@@ -70,7 +70,11 @@ class CommentOut(CommentBase):
     image_width: Optional[int] = None
     image_height: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    # class Config:
+    #     from_attributes = True
+
+    model_config = {
+        "from_attributes": True
+    }
 
 
