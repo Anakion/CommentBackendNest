@@ -1,4 +1,20 @@
 services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .dev.env
+    container_name: web_comment
+    restart: always
+    command: [ "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4" ]
+
+
   postgres:
     image: postgres:15-alpine
     env_file:
