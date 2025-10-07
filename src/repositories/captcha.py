@@ -18,6 +18,13 @@ class CaptchaRepository:
         await self.session.refresh(captcha)
         return captcha
 
+    async def get_by_id(self, captcha_id: int) -> Optional[Captcha]:
+        """Получает CAPTCHA по ID"""
+        result = await self.session.execute(
+            select(Captcha).where(Captcha.id == captcha_id)
+        )
+        return result.scalars().first()
+
     async def get_valid_captcha(self, captcha_id: int, text: str) -> Optional[Captcha]:
         # CAPTCHA действительна 10 минут
         time_threshold = datetime.utcnow() - timedelta(minutes=10)
